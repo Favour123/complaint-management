@@ -157,7 +157,7 @@ async function adminLogin(e) {
         document.getElementById("adminLoginMessageBox").style.color = "#ebf0eb";
         document.getElementById("adminLoginMessageBox").style.display = "block";
         setTimeout(() => {
-          window.location.href = "./users";
+          window.location.href = "../admin/users.html";
         }, 1000);
       }
     })

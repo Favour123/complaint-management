@@ -16,6 +16,18 @@ body {
   width: 100%;
 }
 
+/* User Profile Image Styles */
+.user-profile-img {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.user-profile-img:hover {
+  transform: scale(1.1);
+  transition: transform 0.3s ease-in-out;
+}
+
 /* Sidebar Styles */
 .sidebar {
   width: 25%;

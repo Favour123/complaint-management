@@ -30,6 +30,20 @@ function getCookie(item) {
   return "";
 }
 
+function setUserDisplayName(fullName) {
+  function apply() {
+    var el = document.getElementById("userFullName");
+    if (el && fullName) {
+      el.textContent = fullName;
+    }
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", apply);
+  } else {
+    apply();
+  }
+}
+
 function verifyToken(token) {
   fetch(`${BASE_URL}/api/auth/verify-token`, {
     method: "GET",
@@ -40,15 +54,17 @@ function verifyToken(token) {
   })
     .then((response) => response.json())
     .then((res) => {
-      console.log("Success:", res);
       if (res.status === "error") {
-        window.location.href = "/authenticate.html";
+        window.location.href = "../authenticate.html";
+        return;
       }
-      console.log(res);
+      if (res.data && res.data.fullName) {
+        setUserDisplayName(res.data.fullName);
+      }
     })
     .catch((error) => {
       console.error("Error:", error);
-      window.location.href = "/authenticate.html";
+      window.location.href = "../authenticate.html";
     });
 }
 

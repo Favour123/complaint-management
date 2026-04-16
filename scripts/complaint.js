@@ -8,6 +8,25 @@
  */
 // No selected code provided, so I'll suggest a general improvement for the entire code file
 
+function getCookieValue(name) {
+  var nameEq = name + "=";
+  var decodedCookie = decodeURIComponent(document.cookie);
+  var ca = decodedCookie.split(";");
+  for (var i = 0; i < ca.length; i++) {
+    var c = ca[i];
+    while (c.charAt(0) == " ") c = c.substring(1);
+    if (c.indexOf(nameEq) == 0) return c.substring(nameEq.length, c.length);
+  }
+  return "";
+}
+
+/** Prefer admin JWT on admin pages; otherwise student token from auth.js */
+function clientAuthBearer() {
+  var admin = getCookieValue("adminToken");
+  if (admin) return admin;
+  return typeof token !== "undefined" ? token : "";
+}
+
 // Extract a function to handle API requests
 async function apiRequest(url, method, headers, body) {
   try {
@@ -300,7 +319,7 @@ function viewComplaint(uuid) {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${clientAuthBearer()}`,
     },
   })
     .then((response) => response.json())
@@ -332,7 +351,7 @@ async function AllComplaint() {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        // Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${clientAuthBearer()}`,
       },
     });
 
@@ -373,6 +392,7 @@ async function updateComplaint() {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${getCookieValue("adminToken")}`,
           },
           body: JSON.stringify({
             status: "Resolved",

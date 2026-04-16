@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>404 — Page not found | CMS</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Poppins", sans-serif;
+        line-height: 1.6;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        background: #f8f9fa;
+      }
+      .notfound-header {
+        background: #d65353;
+        text-align: center;
+        padding: 80px 16px 64px;
+        color: #fff;
+      }
+      .notfound-header .code {
+        font-size: clamp(4rem, 12vw, 7rem);
+        font-weight: 600;
+        line-height: 1;
+        letter-spacing: -0.02em;
+      }
+      .notfound-header h1 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-top: 1rem;
+      }
+      .notfound-header p {
+        max-width: 420px;
+        margin: 0.75rem auto 0;
+        opacity: 0.95;
+        font-size: 0.95rem;
+      }
+      .notfound-actions {
+        margin-top: 2rem;
+      }
+      .notfound-actions .btn-light {
+        font-weight: 500;
+      }
+      .notfound-actions .btn-outline-light:hover {
+        color: #d65353;
+      }
+      footer {
+        margin-top: auto;
+        background: #000;
+        color: #fff;
+        padding: 14px 0;
+        text-align: center;
+        font-size: 0.9rem;
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+      <div class="container">
+        <a class="navbar-brand" href="./">CMS</a>
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbar404"
+          aria-controls="navbar404"
+          aria-expanded="false"
+          aria-label="Toggle navigation"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbar404">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item">
+              <a class="nav-link" href="./">Home</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="./authenticate.html">Sign in</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="./admin/">Admin</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <header class="notfound-header">
+      <div class="code">404</div>
+      <h1>Page not found</h1>
+      <p>
+        The page you are looking for does not exist or may have been moved.
+      </p>
+      <div class="notfound-actions d-flex flex-wrap justify-content-center gap-2">
+        <a class="btn btn-light px-4" href="./">Back to home</a>
+        <a class="btn btn-outline-light px-4" href="./authenticate.html">User login</a>
+      </div>
+    </header>
+
+    <footer>
+      <p class="mb-0">© 2026 CMS. All Rights Reserved.</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

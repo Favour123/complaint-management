@@ -5,9 +5,30 @@
  * "success". In the `deleteUser` function, an alert message is returned if the user is deleted
  * successfully.
  */
+function getCookieValue(name) {
+  var nameEq = name + "=";
+  var decodedCookie = decodeURIComponent(document.cookie);
+  var ca = decodedCookie.split(";");
+  for (var i = 0; i < ca.length; i++) {
+    var c = ca[i];
+    while (c.charAt(0) == " ") c = c.substring(1);
+    if (c.indexOf(nameEq) == 0) return c.substring(nameEq.length, c.length);
+  }
+  return "";
+}
+
+function adminAuthHeaders() {
+  return {
+    "Content-Type": "application/json",
+    Authorization: "Bearer " + getCookieValue("adminToken"),
+  };
+}
+
 async function getAllUsers() {
   try {
-    const response = await fetch(`${BASE_URL}/api/admin/users`);
+    const response = await fetch(`${BASE_URL}/api/admin/users`, {
+      headers: adminAuthHeaders(),
+    });
     const res = await response.json();
 
     if (res.status === "success") {
@@ -26,6 +47,7 @@ async function deleteUser(userId) {
   try {
     const response = await fetch(`${BASE_URL}/api/admin/user/${userId}`, {
       method: "DELETE",
+      headers: adminAuthHeaders(),
     });
 
     if (response.status === 204) {
