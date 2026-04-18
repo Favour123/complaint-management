@@ -13,7 +13,10 @@ const PORT = process.env.PORT || 3000;
 
 app.use(
   cors({
-    origin: "https://complaint-management-pi.vercel.app",
+    origin: [
+      "https://complaint-management-pi.vercel.app",
+      "http://127.0.0.1:5500",
+    ],
     credentials: true,
   })
 );
