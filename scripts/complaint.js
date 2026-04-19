@@ -122,9 +122,9 @@ function viewComplaint(uuid) {
       }
       console.log(res);
       const complaintDetails = res.data;
-      // render the resolve button conditionally
-      if (complaintDetails.complaint_status === "Pending") {
-        document.getElementById("updateStatusBtn").style.display = "block";
+      const updateStatusBtn = document.getElementById("updateStatusBtn");
+      if (updateStatusBtn) {
+        updateStatusBtn.style.display = complaintDetails.complaint_status === "Pending" ? "block" : "none";
       }
 
       document.getElementById("detailsDiv").innerHTML = `
@@ -329,9 +329,9 @@ function viewComplaint(uuid) {
       }
       console.log(res);
       const complaintDetails = res.data;
-      // render the resolve button conditionally
-      if (complaintDetails.complaint_status === "Pending") {
-        document.getElementById("updateStatusBtn").style.display = "block";
+      const updateStatusBtn = document.getElementById("updateStatusBtn");
+      if (updateStatusBtn) {
+        updateStatusBtn.style.display = complaintDetails.complaint_status === "Pending" ? "block" : "none";
       }
 
       document.getElementById("detailsDiv").innerHTML = `
