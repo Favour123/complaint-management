@@ -1,5 +1,5 @@
 const express = require("express");
-const { pool } = require("../db");
+const Complaint = require("../models/Complaint");
 const { requireUser, requireUserOrAdminComplaint } = require("../middleware/auth");
 
 const router = express.Router();
@@ -15,18 +15,20 @@ router.post("/submit", requireUser, async (req, res) => {
       });
     }
 
-    const { rows } = await pool.query(
-      `INSERT INTO complaints
-        (user_id, complaint_type, faculty, complaint_title, complaint_body, complaint_status)
-       VALUES ($1, $2, $3, $4, $5, 'Pending')
-       RETURNING uuid`,
-      [req.user.id, complaintType, faculty.trim(), title.trim(), description]
-    );
+    const complaint = new Complaint({
+      userId: req.user.id,
+      complaintType,
+      faculty: faculty.trim(),
+      complaintTitle: title.trim(),
+      complaintBody: description,
+    });
+
+    await complaint.save();
 
     return res.status(201).json({
       status: "success",
       message: "Complaint submitted successfully",
-      data: { uuid: rows[0].uuid },
+      data: { uuid: complaint.uuid },
     });
   } catch (err) {
     console.error(err);
@@ -39,21 +41,17 @@ router.post("/submit", requireUser, async (req, res) => {
 
 router.get("/user", requireUser, async (req, res) => {
   try {
-    const { rows } = await pool.query(
-      `SELECT uuid, complaint_type, faculty, complaint_title, complaint_status, created_at
-       FROM complaints
-       WHERE user_id = $1
-       ORDER BY created_at DESC`,
-      [req.user.id]
-    );
+    const complaints = await Complaint.find({ userId: req.user.id }).sort({
+      createdAt: -1,
+    });
 
-    const data = rows.map((r) => ({
+    const data = complaints.map((r) => ({
       uuid: r.uuid,
-      complaint_type: r.complaint_type,
+      complaint_type: r.complaintType,
       faculty: r.faculty,
-      complaint_title: r.complaint_title,
-      complaint_status: r.complaint_status,
-      createdAt: r.created_at,
+      complaint_title: r.complaintTitle,
+      complaint_status: r.complaintStatus,
+      createdAt: r.createdAt,
     }));
 
     return res.json({ status: "success", data });
@@ -68,37 +66,28 @@ router.get("/user", requireUser, async (req, res) => {
 
 router.get("/:uuid", requireUserOrAdminComplaint, async (req, res) => {
   try {
-    let result;
-    if (req.authRole === "admin") {
-      result = await pool.query(
-        `SELECT uuid, complaint_type, complaint_title, complaint_body, complaint_status
-         FROM complaints WHERE uuid = $1`,
-        [req.params.uuid]
-      );
-    } else {
-      result = await pool.query(
-        `SELECT uuid, complaint_type, complaint_title, complaint_body, complaint_status
-         FROM complaints WHERE uuid = $1 AND user_id = $2`,
-        [req.params.uuid, req.user.id]
-      );
+    const query = { uuid: req.params.uuid };
+    if (req.authRole !== "admin") {
+      query.userId = req.user.id;
     }
 
-    if (result.rows.length === 0) {
+    const complaint = await Complaint.findOne(query);
+
+    if (!complaint) {
       return res.status(404).json({
         status: "error",
         message: "Complaint not found",
       });
     }
 
-    const c = result.rows[0];
     return res.json({
       status: "success",
       data: {
-        uuid: c.uuid,
-        complaint_type: c.complaint_type,
-        complaint_title: c.complaint_title,
-        complaint_body: c.complaint_body,
-        complaint_status: c.complaint_status,
+        uuid: complaint.uuid,
+        complaint_type: complaint.complaintType,
+        complaint_title: complaint.complaintTitle,
+        complaint_body: complaint.complaintBody,
+        complaint_status: complaint.complaintStatus,
       },
     });
   } catch (err) {

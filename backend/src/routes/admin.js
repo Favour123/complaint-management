@@ -1,7 +1,9 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const { pool } = require("../db");
+const Admin = require("../models/Admin");
+const User = require("../models/User");
+const Complaint = require("../models/Complaint");
 const { requireAdmin } = require("../middleware/auth");
 
 const router = express.Router();
@@ -9,7 +11,7 @@ const router = express.Router();
 function signAdminToken(admin) {
   return jwt.sign(
     {
-      sub: admin.id,
+      sub: admin._id,
       uuid: admin.uuid,
       role: "admin",
     },
@@ -28,19 +30,15 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    const { rows } = await pool.query(
-      `SELECT id, uuid, email, password_hash FROM admins WHERE email = $1`,
-      [email.trim().toLowerCase()]
-    );
-    if (rows.length === 0) {
+    const admin = await Admin.findOne({ email: email.trim().toLowerCase() });
+    if (!admin) {
       return res.status(401).json({
         status: "error",
         message: "Invalid email or password",
       });
     }
 
-    const admin = rows[0];
-    const ok = await bcrypt.compare(password, admin.password_hash);
+    const ok = await bcrypt.compare(password, admin.passwordHash);
     if (!ok) {
       return res.status(401).json({
         status: "error",
@@ -66,32 +64,23 @@ router.post("/login", async (req, res) => {
 
 router.get("/get-complaints", requireAdmin, async (req, res) => {
   try {
-    const stats = await pool.query(`
-      SELECT
-        COUNT(*)::int AS total,
-        COUNT(*) FILTER (WHERE complaint_status = 'Pending')::int AS pending,
-        COUNT(*) FILTER (WHERE complaint_status = 'Resolved')::int AS resolved
-      FROM complaints
-    `);
+    const total = await Complaint.countDocuments();
+    const pending = await Complaint.countDocuments({ complaintStatus: "Pending" });
+    const resolved = await Complaint.countDocuments({ complaintStatus: "Resolved" });
 
-    const { rows: complaints } = await pool.query(`
-      SELECT uuid, complaint_type, faculty, complaint_title, complaint_status, updated_at
-      FROM complaints
-      ORDER BY updated_at DESC
-    `);
+    const complaints = await Complaint.find().sort({ updatedAt: -1 });
 
-    const s = stats.rows[0];
     const data = {
-      count: s.total,
-      pendingComplaints: s.pending,
-      resolvedComplaints: s.resolved,
+      count: total,
+      pendingComplaints: pending,
+      resolvedComplaints: resolved,
       complaints: complaints.map((c) => ({
         uuid: c.uuid,
-        complaint_type: c.complaint_type,
+        complaint_type: c.complaintType,
         faculty: c.faculty,
-        complaint_title: c.complaint_title,
-        complaint_status: c.complaint_status,
-        updatedAt: c.updated_at.toISOString(),
+        complaint_title: c.complaintTitle,
+        complaint_status: c.complaintStatus,
+        updatedAt: c.updatedAt.toISOString(),
       })),
     };
 
@@ -115,15 +104,13 @@ router.put("/complaints/update/:uuid", requireAdmin, async (req, res) => {
       });
     }
 
-    const result = await pool.query(
-      `UPDATE complaints
-       SET complaint_status = $1, updated_at = NOW()
-       WHERE uuid = $2
-       RETURNING uuid`,
-      [status, req.params.uuid]
+    const complaint = await Complaint.findOneAndUpdate(
+      { uuid: req.params.uuid },
+      { complaintStatus: status },
+      { new: true }
     );
 
-    if (result.rowCount === 0) {
+    if (!complaint) {
       return res.status(404).json({
         status: "error",
         message: "Complaint not found",
@@ -145,14 +132,12 @@ router.put("/complaints/update/:uuid", requireAdmin, async (req, res) => {
 
 router.get("/users", requireAdmin, async (req, res) => {
   try {
-    const { rows } = await pool.query(
-      `SELECT uuid, full_name, matric_no, email FROM users ORDER BY created_at DESC`
-    );
+    const usersList = await User.find().sort({ createdAt: -1 });
 
-    const users = rows.map((u) => ({
+    const users = usersList.map((u) => ({
       uuid: u.uuid,
-      fullName: u.full_name,
-      matricNo: u.matric_no,
+      fullName: u.fullName,
+      matricNo: u.matricNo,
       email: u.email,
     }));
 
@@ -174,14 +159,17 @@ router.get("/users", requireAdmin, async (req, res) => {
 
 router.delete("/user/:userId", requireAdmin, async (req, res) => {
   try {
-    const result = await pool.query(`DELETE FROM users WHERE uuid = $1`, [req.params.userId]);
+    const user = await User.findOneAndDelete({ uuid: req.params.userId });
 
-    if (result.rowCount === 0) {
+    if (!user) {
       return res.status(404).json({
         status: "error",
         message: "User not found",
       });
     }
+
+    // Also delete their complaints
+    await Complaint.deleteMany({ userId: user._id });
 
     return res.sendStatus(204);
   } catch (err) {

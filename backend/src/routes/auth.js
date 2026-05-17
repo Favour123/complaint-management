@@ -1,7 +1,7 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const { pool } = require("../db");
+const User = require("../models/User");
 const { bearerToken } = require("../middleware/auth");
 
 const router = express.Router();
@@ -9,7 +9,7 @@ const router = express.Router();
 function signUserToken(user) {
   return jwt.sign(
     {
-      sub: user.id,
+      sub: user._id,
       uuid: user.uuid,
       role: "user",
     },
@@ -35,22 +35,24 @@ router.post("/register", async (req, res) => {
       });
     }
 
-    const password_hash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(password, 10);
 
-    const result = await pool.query(
-      `INSERT INTO users (full_name, matric_no, email, password_hash)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, uuid`,
-      [fullName.trim(), matricNo.trim(), email.trim().toLowerCase(), password_hash]
-    );
+    const user = new User({
+      fullName: fullName.trim(),
+      matricNo: matricNo.trim(),
+      email: email.trim().toLowerCase(),
+      passwordHash,
+    });
+
+    await user.save();
 
     return res.status(201).json({
       status: "success",
       message: "Registration successful. You can sign in now.",
-      data: { uuid: result.rows[0].uuid },
+      data: { uuid: user.uuid },
     });
   } catch (err) {
-    if (err.code === "23505") {
+    if (err.code === 11000) {
       return res.status(409).json({
         status: "error",
         message: "Email or matric number already registered",
@@ -74,19 +76,15 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    const { rows } = await pool.query(
-      `SELECT id, uuid, email, password_hash FROM users WHERE email = $1`,
-      [email.trim().toLowerCase()]
-    );
-    if (rows.length === 0) {
+    const user = await User.findOne({ email: email.trim().toLowerCase() });
+    if (!user) {
       return res.status(401).json({
         status: "error",
         message: "Invalid email or password",
       });
     }
 
-    const user = rows[0];
-    const ok = await bcrypt.compare(password, user.password_hash);
+    const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) {
       return res.status(401).json({
         status: "error",
@@ -120,16 +118,13 @@ router.get("/verify-token", async (req, res) => {
     if (payload.role !== "user") {
       return res.status(403).json({ status: "error", message: "Invalid token" });
     }
-    const { rows } = await pool.query(
-      `SELECT full_name FROM users WHERE id = $1`,
-      [payload.sub]
-    );
-    if (rows.length === 0) {
+    const user = await User.findById(payload.sub);
+    if (!user) {
       return res.status(401).json({ status: "error", message: "User not found" });
     }
     return res.json({
       status: "success",
-      data: { fullName: rows[0].full_name },
+      data: { fullName: user.fullName },
     });
   } catch {
     return res.status(401).json({ status: "error", message: "Invalid or expired token" });

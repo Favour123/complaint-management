@@ -2,7 +2,8 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
-const { pool } = require("./db");
+const { connectDB } = require("./db");
+const Admin = require("./models/Admin");
 
 const authRoutes = require("./routes/auth");
 const complaintsRoutes = require("./routes/complaints");
@@ -16,6 +17,7 @@ app.use(
     origin: [
       "https://complaint-management-pi.vercel.app",
       "http://127.0.0.1:5500",
+      "http://localhost:5500",
     ],
     credentials: true,
   })
@@ -23,7 +25,7 @@ app.use(
 app.use(express.json());
 
 app.get("/health", (req, res) => {
-  res.json({ ok: true });
+  res.json({ ok: true, database: "mongodb" });
 });
 
 app.use("/api/auth", authRoutes);
@@ -40,23 +42,23 @@ async function seedAdminIfConfigured() {
   const password = process.env.ADMIN_PASSWORD;
   if (!email || !password) return;
 
-  const existing = await pool.query(`SELECT id FROM admins WHERE email = $1`, [
-    email.trim().toLowerCase(),
-  ]);
-  if (existing.rows.length > 0) return;
+  const existing = await Admin.findOne({ email: email.trim().toLowerCase() });
+  if (existing) return;
 
-  const password_hash = await bcrypt.hash(password, 10);
-  await pool.query(`INSERT INTO admins (email, password_hash) VALUES ($1, $2)`, [
-    email.trim().toLowerCase(),
-    password_hash,
-  ]);
+  const passwordHash = await bcrypt.hash(password, 10);
+  const admin = new Admin({
+    email: email.trim().toLowerCase(),
+    passwordHash,
+  });
+  await admin.save();
   console.log(`Seeded admin user: ${email}`);
 }
 
 async function start() {
+  await connectDB();
   await seedAdminIfConfigured();
   app.listen(PORT, () => {
-    console.log(`Complaint API listening on port ${PORT}`);
+    console.log(`Complaint API (MongoDB) listening on port ${PORT}`);
   });
 }
 
